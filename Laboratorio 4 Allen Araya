@@ -1,0 +1,66 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <omp.h>
+
+// Se define los nodos 
+struct node {
+    int data;
+    int result;
+    struct node* next;
+};
+
+void processwork(struct node* p) {
+    p->result = p->data * 2; // Basicamente se multiplica cada dato por 2 
+}
+
+struct node* fill_list(struct node* p, int num_elements) {
+    struct node* head = NULL;
+    struct node* current = NULL;
+
+    for (int i = 0; i < num_elements; ++i) {
+        struct node* newNode = (struct node*)malloc(sizeof(struct node));
+        newNode->data = rand() % 100; // Se generan datos entre 0 y 99
+        newNode->result = 0; // Se inicializa el resultado en 0
+        newNode->next = NULL;
+
+        if (!head) {
+            head = newNode;
+            current = newNode;
+        }
+        else {
+            current->next = newNode;
+            current = newNode;
+        }
+    }
+
+    return head;
+}
+
+int main(int argc, char* argv[]) {
+    int num_elements = 200; // Se genera una lista de 50 numeros 
+    struct node* p = NULL;
+    struct node* head = NULL;
+    double start_time, run_time;
+
+    srand(omp_get_wtime());
+
+    head = fill_list(p, num_elements);
+
+#pragma omp parallel
+#pragma omp single
+    {
+        p = head;
+        start_time = omp_get_wtime();
+        while (p) {
+#pragma omp task firstprivate(p)
+            processwork(p);
+        
+            printf("Datos: %d, Valor multiplicado * 2: %d \n", p->data, p->result);
+            p = p->next;
+        }
+        run_time = start_time - omp_get_wtime();
+        printf("Tiempo %d", run_time);
+    }
+
+    return 0;
+}
